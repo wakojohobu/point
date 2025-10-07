@@ -23,14 +23,47 @@
             -webkit-user-select: none;
         }
         
-        /* アクティブ状態のアニメーション */
+        /* アクティブ状態のアニメーション無効化 */
         .touch-button:active {
-            transform: none;
+            transform: none !important;
+            transition: none !important;
+        }
+        
+        /* ボタン押下時のスケール無効化 */
+        .touch-button {
+            transform: none !important;
+        }
+        
+        /* ホバー効果も無効化 */
+        .touch-button:hover {
+            transform: none !important;
         }
         
         /* 選択されたボタンの強調 */
         .selected-button {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+
+        /* レスポンシブ対応のカスタムスタイル */
+        @media (max-width: 768px) {
+            .mobile-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .mobile-text {
+                font-size: 0.875rem;
+            }
+            .mobile-button {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .mobile-grid {
+                grid-template-columns: 1fr;
+            }
+            .mobile-small-text {
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -255,23 +288,23 @@
             const totalScores = calculateTotalScores();
 
             return (
-                <div className="h-screen bg-black p-4 flex flex-col">
-                    {/* コンパクトヘッダー */}
-                    <header className="bg-gray-900 rounded-lg shadow-sm mb-4 p-4 flex-shrink-0">
+                <div className="min-h-screen bg-black p-2 sm:p-4 flex flex-col">
+                    {/* レスポンシブヘッダー */}
+                    <header className="bg-gray-900 rounded-lg shadow-sm mb-2 sm:mb-4 p-2 sm:p-4 flex-shrink-0">
                         <div className="flex justify-between items-center mb-2">
                             <div>
-                                <h1 className="text-lg font-bold text-white">徒競走得点集計 らくらく君</h1>
+                                <h1 className="text-sm sm:text-lg font-bold text-white">徒競走得点集計 らくらく君</h1>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 sm:gap-2">
                                 <button
                                     onClick={() => setShowSettings(true)}
-                                    className="touch-button p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-lg"
+                                    className="touch-button p-1 sm:p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-sm sm:text-lg"
                                 >
                                     ⚙️
                                 </button>
                                 <button
                                     onClick={() => setShowResetModal(true)}
-                                    className="touch-button p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-lg"
+                                    className="touch-button p-1 sm:p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-sm sm:text-lg"
                                 >
                                     🗑️
                                 </button>
@@ -281,12 +314,12 @@
                             <button
                                 onClick={goToPreviousRace}
                                 disabled={currentRaceIndex === 0}
-                                className="touch-button px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all font-bold text-sm"
+                                className="touch-button px-3 sm:px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all font-bold text-xs sm:text-sm"
                             >
                                 ← 前
                             </button>
-                            <div className="flex-1 text-center">
-                                <div className="text-6xl font-bold text-white mb-1">
+                            <div className="flex-1 text-center px-2">
+                                <div className="text-2xl sm:text-6xl font-bold text-white mb-1">
                                     第 {currentRaceIndex + 1} レース
                                 </div>
                                 <input
@@ -301,26 +334,26 @@
                                         setRaceData(newRaceData);
                                     }}
                                     placeholder="競技名入力"
-                                    className="w-48 px-3 py-1 border-2 border-gray-600 bg-gray-800 rounded-lg text-sm font-bold text-white focus:border-blue-400 focus:outline-none"
+                                    className="w-32 sm:w-48 px-2 sm:px-3 py-1 border-2 border-gray-600 bg-gray-800 rounded-lg text-xs sm:text-sm font-bold text-white focus:border-blue-400 focus:outline-none"
                                 />
                             </div>
                             <button
                                 onClick={goToNextRace}
-                                className="touch-button px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm"
+                                className="touch-button px-3 sm:px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-xs sm:text-sm"
                             >
                                 次 →
                             </button>
                         </div>
                     </header>
 
-                    <div className="flex-1 flex flex-col gap-4 min-h-0">
-                        {/* 順位入力 */}
-                        <div className="bg-gray-900 rounded-lg shadow-sm p-4 flex-1">
-                            <h2 className="text-lg font-bold text-white mb-3 text-center">📝 順位入力</h2>
-                            <div className="grid grid-cols-6 gap-1 h-full">
+                    <div className="flex-1 flex flex-col gap-2 sm:gap-4 min-h-0">
+                        {/* レスポンシブ順位入力 */}
+                        <div className="bg-gray-900 rounded-lg shadow-sm p-2 sm:p-4 flex-1">
+                            <h2 className="text-sm sm:text-lg font-bold text-white mb-2 sm:mb-3 text-center">📝 順位入力</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 h-full">
                                 {[1, 2, 3, 4, 5, 6].map(position => (
-                                    <div key={position} className="border-2 border-gray-700 rounded-lg p-3 bg-gray-800 flex flex-col">
-                                        <div className={`rounded-xl p-3 mb-2 text-center border-2 ${
+                                    <div key={position} className="border-2 border-gray-700 rounded-lg p-1 sm:p-3 bg-gray-800 flex flex-col">
+                                        <div className={`rounded-xl p-2 sm:p-3 mb-1 sm:mb-2 text-center border-2 ${
                                             raceData[currentRaceIndex][position] 
                                                 ? raceData[currentRaceIndex][position] === 'White' 
                                                     ? 'bg-gray-200 border-gray-400 text-gray-800' 
@@ -335,8 +368,8 @@
                                                                     : 'bg-gray-600 border-gray-500 text-white'
                                                 : 'bg-gray-600 border-gray-500 text-white'
                                         }`}>
-                                            <div className="text-2xl font-bold">{position}位</div>
-                                            <div className="text-lg">({pointsConfig[position] || 0}点)</div>
+                                            <div className="text-lg sm:text-2xl font-bold">{position}位</div>
+                                            <div className="text-sm sm:text-lg">({pointsConfig[position] || 0}点)</div>
                                         </div>
                                         <div className="space-y-1 flex-1">
                                             {selectedTeamCodes.map(teamCode => {
@@ -346,7 +379,7 @@
                                                     <button
                                                         key={teamCode}
                                                         onClick={() => toggleTeamPosition(position.toString(), teamCode)}
-                                                        className={`touch-button w-full py-5 px-1 rounded-lg border-2 transition-all font-bold text-lg ${
+                                                        className={`touch-button w-full py-2 sm:py-5 px-1 rounded-lg border-2 transition-all font-bold text-sm sm:text-lg ${
                                                             isSelected
                                                                 ? teamCode === 'White' 
                                                                     ? 'bg-gray-200 border-4 border-blue-500 text-gray-800 shadow-lg selected-button'
@@ -364,8 +397,8 @@
                                                                                     : 'bg-gray-700 border-gray-500 text-white hover:border-gray-400 active:bg-gray-600'
                                                         }`}
                                                     >
-                                                        <div className="flex items-center justify-center">
-                                                            {isSelected && <span className="text-6xl font-bold">✓</span>}
+                                                        <div className="flex items-center justify-center h-full">
+                                                            {isSelected && <span className="text-xs sm:text-lg lg:text-2xl font-bold text-black">●</span>}
                                                         </div>
                                                     </button>
                                                 );
@@ -376,26 +409,26 @@
                             </div>
                         </div>
 
-                        {/* 総合ランキング */}
-                        <div className="bg-gray-900 rounded-lg shadow-sm p-4 flex-shrink-0">
-                            <h2 className="text-lg font-bold text-white mb-3 text-center">🏅 集計結果</h2>
-                            <div className="grid grid-cols-5 gap-2">
+                        {/* レスポンシブ総合ランキング */}
+                        <div className="bg-gray-900 rounded-lg shadow-sm p-2 sm:p-4 flex-shrink-0">
+                            <h2 className="text-sm sm:text-lg font-bold text-white mb-2 sm:mb-3 text-center">🏅 集計結果</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 sm:gap-2">
                                 {totalScores.map(({ team, score, rank }) => {
                                     const teamData = teamInfo[team];
                                     return (
                                         <div
                                             key={team}
-                                            className={`flex flex-col items-center p-3 rounded-xl border-2 ${teamData.color} ${
+                                            className={`flex flex-col items-center p-2 sm:p-3 rounded-xl border-2 ${teamData.color} ${
                                                 rank === 1 ? 'border-yellow-400 shadow-lg shadow-yellow-400/50' :
                                                 rank === 2 ? 'border-gray-300 shadow-lg shadow-gray-300/50' :
                                                 rank === 3 ? 'border-orange-400 shadow-lg shadow-orange-400/50' :
                                                 'border-gray-500'
                                             } ${team === 'White' ? 'text-gray-800' : 'text-white'}`}
                                         >
-                                            <span className={`text-lg font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
+                                            <span className={`text-sm sm:text-lg font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
                                                 {teamData.name}
                                             </span>
-                                            <span className={`text-3xl font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
+                                            <span className={`text-xl sm:text-3xl font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
                                                 {score}点
                                             </span>
                                         </div>
@@ -405,27 +438,27 @@
                         </div>
                     </div>
 
-                    {/* 設定モーダル */}
+                    {/* レスポンシブ設定モーダル */}
                     {showSettings && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-6 z-50">
-                            <div className="bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto">
-                                <div className="p-8">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <h3 className="text-3xl font-bold text-gray-800">⚙️ 設定</h3>
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-2 sm:p-6 z-50">
+                            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <div className="p-4 sm:p-8">
+                                    <div className="flex justify-between items-center mb-4 sm:mb-8">
+                                        <h3 className="text-xl sm:text-3xl font-bold text-gray-800">⚙️ 設定</h3>
                                         <button
                                             onClick={() => setShowSettings(false)}
-                                            className="touch-button px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all font-bold text-lg"
+                                            className="touch-button px-3 sm:px-6 py-1 sm:py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all font-bold text-sm sm:text-lg"
                                         >
                                             閉じる
                                         </button>
                                     </div>
                                     
                                     {/* チーム選択 */}
-                                    <div className="mb-10">
-                                        <h4 className="font-bold text-gray-700 mb-6 text-2xl">参加チーム</h4>
-                                        <div className="space-y-4">
+                                    <div className="mb-6 sm:mb-10">
+                                        <h4 className="font-bold text-gray-700 mb-3 sm:mb-6 text-lg sm:text-2xl">参加チーム</h4>
+                                        <div className="space-y-2 sm:space-y-4">
                                             {Object.entries(teamInfo).map(([code, info]) => (
-                                                <label key={code} className="flex items-center gap-6 p-4 rounded-2xl hover:bg-gray-50 cursor-pointer">
+                                                <label key={code} className="flex items-center gap-3 sm:gap-6 p-2 sm:p-4 rounded-2xl hover:bg-gray-50 cursor-pointer">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedTeamCodes.includes(code)}
@@ -438,23 +471,23 @@
                                                                 }
                                                             }
                                                         }}
-                                                        className="w-6 h-6"
+                                                        className="w-4 h-4 sm:w-6 sm:h-6"
                                                     />
-                                                    <div className={`w-8 h-8 rounded-full ${info.color}`}></div>
-                                                    <span className="text-gray-700 font-medium text-xl">{info.name}</span>
+                                                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${info.color}`}></div>
+                                                    <span className="text-gray-700 font-medium text-lg sm:text-xl">{info.name}</span>
                                                 </label>
                                             ))}
                                         </div>
-                                        <p className="text-lg text-gray-500 mt-4">※最低2チーム必要です</p>
+                                        <p className="text-sm sm:text-lg text-gray-500 mt-2 sm:mt-4">※最低2チーム必要です</p>
                                     </div>
 
                                     {/* 得点設定 */}
-                                    <div className="mb-10">
-                                        <h4 className="font-bold text-gray-700 mb-6 text-2xl">順位別得点</h4>
-                                        <div className="grid grid-cols-2 gap-6">
+                                    <div className="mb-6 sm:mb-10">
+                                        <h4 className="font-bold text-gray-700 mb-3 sm:mb-6 text-lg sm:text-2xl">順位別得点</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
                                             {[1, 2, 3, 4, 5, 6].map(position => (
-                                                <div key={position} className="flex items-center gap-4">
-                                                    <label className="text-xl text-gray-600 w-16 font-medium">
+                                                <div key={position} className="flex items-center gap-2 sm:gap-4">
+                                                    <label className="text-lg sm:text-xl text-gray-600 w-12 sm:w-16 font-medium">
                                                         {position}位
                                                     </label>
                                                     <input
@@ -466,39 +499,37 @@
                                                                 [position]: parseInt(e.target.value) || 0
                                                             });
                                                         }}
-                                                        className="flex-1 px-4 py-3 border-2 rounded-2xl text-xl font-medium"
+                                                        className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-lg sm:text-xl font-medium"
                                                         min="0"
                                                     />
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* リセット確認モーダル */}
+                    {/* レスポンシブリセット確認モーダル */}
                     {showResetModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-6 z-50">
-                            <div className="bg-white rounded-lg w-full max-w-lg p-6">
-                                <h3 className="text-3xl font-bold text-gray-800 mb-6">🗑️ データリセット</h3>
-                                <p className="text-gray-600 mb-10 text-xl leading-relaxed">
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-2 sm:p-6 z-50">
+                            <div className="bg-white rounded-lg w-full max-w-lg p-4 sm:p-6">
+                                <h3 className="text-xl sm:text-3xl font-bold text-gray-800 mb-3 sm:mb-6">🗑️ データリセット</h3>
+                                <p className="text-gray-600 mb-6 sm:mb-10 text-lg sm:text-xl leading-relaxed">
                                     全てのレース記録を削除します。<br />
                                     この操作は取り消せません。
                                 </p>
-                                <div className="flex gap-4">
+                                <div className="flex gap-2 sm:gap-4">
                                     <button
                                         onClick={() => setShowResetModal(false)}
-                                        className="touch-button flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold text-lg"
+                                        className="touch-button flex-1 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold text-sm sm:text-lg"
                                     >
                                         キャンセル
                                     </button>
                                     <button
                                         onClick={resetAllData}
-                                        className="touch-button flex-1 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-bold text-lg"
+                                        className="touch-button flex-1 py-2 sm:py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-bold text-sm sm:text-lg"
                                     >
                                         削除する
                                     </button>
@@ -512,5 +543,5 @@
 
         ReactDOM.render(<SportsScoreApp />, document.getElementById('root'));
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98ae45f593a5af25',t:'MTc1OTg0OTI4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98ae65656060b92b',t:'MTc1OTg1MDU2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
