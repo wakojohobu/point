@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スポーツ大会得点集計</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        /* タッチ操作の改善 */
+        .touch-button {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* アクティブ状態のアニメーション */
+        .touch-button:active {
+            transform: none;
+        }
+        
+        /* 選択されたボタンの強調 */
+        .selected-button {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // グローバル変数のモック（実際の環境では提供される）
+        const __app_id = window.__app_id || 'demo-app-id';
+        const __firebase_config = window.__firebase_config || {
+            apiKey: "demo-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
+        const __initial_auth_token = window.__initial_auth_token || null;
+
+        // Firebase初期化
+        let db = null;
+        let auth = null;
+        let isFirebaseAvailable = false;
+
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(__firebase_config);
+            }
+            db = firebase.firestore();
+            auth = firebase.auth();
+            isFirebaseAvailable = true;
+        } catch (error) {
+            console.warn('Firebase初期化に失敗しました。ローカルモードで動作します。', error);
+        }
+
+        const SportsScoreApp = () => {
+            // 状態管理
+            const [selectedTeamCodes, setSelectedTeamCodes] = useState(['Red', 'White', 'Blue', 'Yellow', 'Green']);
+            const [pointsConfig, setPointsConfig] = useState({ "1": 6, "2": 5, "3": 4, "4": 3, "5": 2, "6": 1 });
+            const [raceData, setRaceData] = useState([{}]);
+            const [currentRaceIndex, setCurrentRaceIndex] = useState(0);
+            const [showSettings, setShowSettings] = useState(false);
+            const [showResetModal, setShowResetModal] = useState(false);
+            const [saveStatus, setSaveStatus] = useState('ローカル');
+            const [userId, setUserId] = useState(null);
+
+            // チーム情報
+            const teamInfo = {
+                'Red': { name: '赤組', color: 'bg-red-500', textColor: 'text-red-700' },
+                'White': { name: '白組', color: 'bg-gray-200 border-2 border-gray-400', textColor: 'text-gray-800' },
+                'Blue': { name: '青組', color: 'bg-blue-500', textColor: 'text-blue-700' },
+                'Yellow': { name: '黄組', color: 'bg-yellow-400', textColor: 'text-yellow-700' },
+                'Green': { name: '緑組', color: 'bg-green-500', textColor: 'text-green-700' }
+            };
+
+            // Firebase認証とデータ読み込み
+            useEffect(() => {
+                if (!isFirebaseAvailable) return;
+
+                const initAuth = async () => {
+                    try {
+                        if (__initial_auth_token) {
+                            // トークンを使用した認証（実装は環境依存）
+                            const user = auth.currentUser;
+                            if (user) {
+                                setUserId(user.uid);
+                                loadData(user.uid);
+                            }
+                        } else {
+                            // 匿名認証
+                            const result = await auth.signInAnonymously();
+                            setUserId(result.user.uid);
+                            loadData(result.user.uid);
+                        }
+                    } catch (error) {
+                        console.warn('認証に失敗しました:', error);
+                        setSaveStatus('ローカル');
+                    }
+                };
+
+                initAuth();
+            }, []);
+
+            // データ読み込み
+            const loadData = async (uid) => {
+                if (!isFirebaseAvailable || !uid) return;
+
+                try {
+                    setSaveStatus('読み込み中');
+                    const docRef = db.collection('artifacts').doc(__app_id)
+                        .collection('users').doc(uid)
+                        .collection('score_data').doc('main');
+                    
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.selectedTeamCodes) setSelectedTeamCodes(data.selectedTeamCodes);
+                        if (data.pointsConfig) setPointsConfig(data.pointsConfig);
+                        if (data.raceData) setRaceData(data.raceData);
+                        if (data.currentRaceIndex !== undefined) setCurrentRaceIndex(data.currentRaceIndex);
+                    }
+                    setSaveStatus('同期済み');
+                } catch (error) {
+                    console.warn('データ読み込みに失敗しました:', error);
+                    setSaveStatus('ローカル');
+                }
+            };
+
+            // データ保存
+            const saveData = useCallback(async () => {
+                if (!isFirebaseAvailable || !userId) return;
+
+                try {
+                    setSaveStatus('保存中');
+                    const docRef = db.collection('artifacts').doc(__app_id)
+                        .collection('users').doc(userId)
+                        .collection('score_data').doc('main');
+                    
+                    await docRef.set({
+                        selectedTeamCodes,
+                        pointsConfig,
+                        raceData,
+                        currentRaceIndex,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setSaveStatus('同期済み');
+                } catch (error) {
+                    console.warn('データ保存に失敗しました:', error);
+                    setSaveStatus('エラー');
+                }
+            }, [selectedTeamCodes, pointsConfig, raceData, currentRaceIndex, userId]);
+
+            // データ変更時の自動保存
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    saveData();
+                }, 1000);
+                return () => clearTimeout(timer);
+            }, [saveData]);
+
+            // 合計得点計算
+            const calculateTotalScores = () => {
+                const scores = {};
+                selectedTeamCodes.forEach(team => scores[team] = 0);
+
+                raceData.forEach(race => {
+                    Object.entries(race).forEach(([position, team]) => {
+                        if (team && pointsConfig[position]) {
+                            scores[team] = (scores[team] || 0) + parseInt(pointsConfig[position]);
+                        }
+                    });
+                });
+
+                // 得点でソートして順位を決定
+                const sortedScores = Object.entries(scores).sort(([,a], [,b]) => b - a);
+                
+                // 各チームの順位を計算
+                const teamRanks = {};
+                let currentRank = 1;
+                
+                for (let i = 0; i < sortedScores.length; i++) {
+                    const [team, score] = sortedScores[i];
+                    
+                    // 前のチームと得点が異なる場合、順位を更新
+                    if (i > 0 && sortedScores[i-1][1] !== score) {
+                        currentRank = i + 1;
+                    }
+                    
+                    teamRanks[team] = currentRank;
+                }
+                
+                // 元の順序を保持して結果を返す
+                return selectedTeamCodes.map(team => ({
+                    team,
+                    score: scores[team],
+                    rank: teamRanks[team]
+                }));
+            };
+
+            // 順位トグル（一つのチームのみ選択可能）
+            const toggleTeamPosition = (position, teamCode) => {
+                const newRaceData = [...raceData];
+                const currentRace = { ...newRaceData[currentRaceIndex] };
+                
+                // 現在選択されているチームと同じ場合は選択解除
+                if (currentRace[position] === teamCode) {
+                    delete currentRace[position];
+                } else {
+                    // 新しいチームを選択
+                    currentRace[position] = teamCode;
+                }
+                
+                newRaceData[currentRaceIndex] = currentRace;
+                setRaceData(newRaceData);
+            };
+
+            // レースナビゲーション
+            const goToPreviousRace = () => {
+                if (currentRaceIndex > 0) {
+                    setCurrentRaceIndex(currentRaceIndex - 1);
+                }
+            };
+
+            const goToNextRace = () => {
+                if (currentRaceIndex < raceData.length - 1) {
+                    setCurrentRaceIndex(currentRaceIndex + 1);
+                } else {
+                    setRaceData([...raceData, {}]);
+                    setCurrentRaceIndex(currentRaceIndex + 1);
+                }
+            };
+
+            // データリセット
+            const resetAllData = () => {
+                setRaceData([{}]);
+                setCurrentRaceIndex(0);
+                setShowResetModal(false);
+            };
+
+            const totalScores = calculateTotalScores();
+
+            return (
+                <div className="h-screen bg-black p-4 flex flex-col">
+                    {/* コンパクトヘッダー */}
+                    <header className="bg-gray-900 rounded-lg shadow-sm mb-4 p-4 flex-shrink-0">
+                        <div className="flex justify-between items-center mb-2">
+                            <div>
+                                <h1 className="text-lg font-bold text-white">徒競走得点集計 らくらく君</h1>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowSettings(true)}
+                                    className="touch-button p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-lg"
+                                >
+                                    ⚙️
+                                </button>
+                                <button
+                                    onClick={() => setShowResetModal(true)}
+                                    className="touch-button p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-lg"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={goToPreviousRace}
+                                disabled={currentRaceIndex === 0}
+                                className="touch-button px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all font-bold text-sm"
+                            >
+                                ← 前
+                            </button>
+                            <div className="flex-1 text-center">
+                                <div className="text-6xl font-bold text-white mb-1">
+                                    第 {currentRaceIndex + 1} レース
+                                </div>
+                                <input
+                                    type="text"
+                                    value={raceData[currentRaceIndex].raceName || ''}
+                                    onChange={(e) => {
+                                        const newRaceData = [...raceData];
+                                        newRaceData[currentRaceIndex] = {
+                                            ...newRaceData[currentRaceIndex],
+                                            raceName: e.target.value
+                                        };
+                                        setRaceData(newRaceData);
+                                    }}
+                                    placeholder="競技名入力"
+                                    className="w-48 px-3 py-1 border-2 border-gray-600 bg-gray-800 rounded-lg text-sm font-bold text-white focus:border-blue-400 focus:outline-none"
+                                />
+                            </div>
+                            <button
+                                onClick={goToNextRace}
+                                className="touch-button px-10 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm"
+                            >
+                                次 →
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="flex-1 flex flex-col gap-4 min-h-0">
+                        {/* 順位入力 */}
+                        <div className="bg-gray-900 rounded-lg shadow-sm p-4 flex-1">
+                            <h2 className="text-lg font-bold text-white mb-3 text-center">📝 順位入力</h2>
+                            <div className="grid grid-cols-6 gap-1 h-full">
+                                {[1, 2, 3, 4, 5, 6].map(position => (
+                                    <div key={position} className="border-2 border-gray-700 rounded-lg p-3 bg-gray-800 flex flex-col">
+                                        <div className={`rounded-xl p-3 mb-2 text-center border-2 ${
+                                            raceData[currentRaceIndex][position] 
+                                                ? raceData[currentRaceIndex][position] === 'White' 
+                                                    ? 'bg-gray-200 border-gray-400 text-gray-800' 
+                                                    : raceData[currentRaceIndex][position] === 'Red' 
+                                                        ? 'bg-red-500 border-red-400 text-white'
+                                                        : raceData[currentRaceIndex][position] === 'Blue'
+                                                            ? 'bg-blue-500 border-blue-400 text-white'
+                                                            : raceData[currentRaceIndex][position] === 'Yellow'
+                                                                ? 'bg-yellow-400 border-yellow-300 text-gray-800'
+                                                                : raceData[currentRaceIndex][position] === 'Green'
+                                                                    ? 'bg-green-500 border-green-400 text-white'
+                                                                    : 'bg-gray-600 border-gray-500 text-white'
+                                                : 'bg-gray-600 border-gray-500 text-white'
+                                        }`}>
+                                            <div className="text-2xl font-bold">{position}位</div>
+                                            <div className="text-lg">({pointsConfig[position] || 0}点)</div>
+                                        </div>
+                                        <div className="space-y-1 flex-1">
+                                            {selectedTeamCodes.map(teamCode => {
+                                                const isSelected = raceData[currentRaceIndex][position] === teamCode;
+                                                const team = teamInfo[teamCode];
+                                                return (
+                                                    <button
+                                                        key={teamCode}
+                                                        onClick={() => toggleTeamPosition(position.toString(), teamCode)}
+                                                        className={`touch-button w-full py-5 px-1 rounded-lg border-2 transition-all font-bold text-lg ${
+                                                            isSelected
+                                                                ? teamCode === 'White' 
+                                                                    ? 'bg-gray-200 border-4 border-blue-500 text-gray-800 shadow-lg selected-button'
+                                                                    : `${team.color} border-4 border-yellow-400 text-white shadow-lg selected-button`
+                                                                : teamCode === 'White'
+                                                                    ? 'bg-gray-200 border-gray-400 text-gray-800 hover:border-gray-300 active:bg-gray-100'
+                                                                    : teamCode === 'Red'
+                                                                        ? 'bg-red-500 border-red-400 text-white hover:border-red-300 active:bg-red-600'
+                                                                        : teamCode === 'Blue'
+                                                                            ? 'bg-blue-500 border-blue-400 text-white hover:border-blue-300 active:bg-blue-600'
+                                                                            : teamCode === 'Yellow'
+                                                                                ? 'bg-yellow-400 border-yellow-300 text-gray-800 hover:border-yellow-200 active:bg-yellow-500'
+                                                                                : teamCode === 'Green'
+                                                                                    ? 'bg-green-500 border-green-400 text-white hover:border-green-300 active:bg-green-600'
+                                                                                    : 'bg-gray-700 border-gray-500 text-white hover:border-gray-400 active:bg-gray-600'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-center">
+                                                            {isSelected && <span className="text-6xl font-bold">✓</span>}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 総合ランキング */}
+                        <div className="bg-gray-900 rounded-lg shadow-sm p-4 flex-shrink-0">
+                            <h2 className="text-lg font-bold text-white mb-3 text-center">🏅 集計結果</h2>
+                            <div className="grid grid-cols-5 gap-2">
+                                {totalScores.map(({ team, score, rank }) => {
+                                    const teamData = teamInfo[team];
+                                    return (
+                                        <div
+                                            key={team}
+                                            className={`flex flex-col items-center p-3 rounded-xl border-2 ${teamData.color} ${
+                                                rank === 1 ? 'border-yellow-400 shadow-lg shadow-yellow-400/50' :
+                                                rank === 2 ? 'border-gray-300 shadow-lg shadow-gray-300/50' :
+                                                rank === 3 ? 'border-orange-400 shadow-lg shadow-orange-400/50' :
+                                                'border-gray-500'
+                                            } ${team === 'White' ? 'text-gray-800' : 'text-white'}`}
+                                        >
+                                            <span className={`text-lg font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
+                                                {teamData.name}
+                                            </span>
+                                            <span className={`text-3xl font-bold ${team === 'White' ? 'text-gray-800' : 'text-white'}`}>
+                                                {score}点
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 設定モーダル */}
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-6 z-50">
+                            <div className="bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto">
+                                <div className="p-8">
+                                    <div className="flex justify-between items-center mb-8">
+                                        <h3 className="text-3xl font-bold text-gray-800">⚙️ 設定</h3>
+                                        <button
+                                            onClick={() => setShowSettings(false)}
+                                            className="touch-button px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all font-bold text-lg"
+                                        >
+                                            閉じる
+                                        </button>
+                                    </div>
+                                    
+                                    {/* チーム選択 */}
+                                    <div className="mb-10">
+                                        <h4 className="font-bold text-gray-700 mb-6 text-2xl">参加チーム</h4>
+                                        <div className="space-y-4">
+                                            {Object.entries(teamInfo).map(([code, info]) => (
+                                                <label key={code} className="flex items-center gap-6 p-4 rounded-2xl hover:bg-gray-50 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedTeamCodes.includes(code)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedTeamCodes([...selectedTeamCodes, code]);
+                                                            } else {
+                                                                if (selectedTeamCodes.length > 2) {
+                                                                    setSelectedTeamCodes(selectedTeamCodes.filter(t => t !== code));
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="w-6 h-6"
+                                                    />
+                                                    <div className={`w-8 h-8 rounded-full ${info.color}`}></div>
+                                                    <span className="text-gray-700 font-medium text-xl">{info.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <p className="text-lg text-gray-500 mt-4">※最低2チーム必要です</p>
+                                    </div>
+
+                                    {/* 得点設定 */}
+                                    <div className="mb-10">
+                                        <h4 className="font-bold text-gray-700 mb-6 text-2xl">順位別得点</h4>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            {[1, 2, 3, 4, 5, 6].map(position => (
+                                                <div key={position} className="flex items-center gap-4">
+                                                    <label className="text-xl text-gray-600 w-16 font-medium">
+                                                        {position}位
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={pointsConfig[position] || 0}
+                                                        onChange={(e) => {
+                                                            setPointsConfig({
+                                                                ...pointsConfig,
+                                                                [position]: parseInt(e.target.value) || 0
+                                                            });
+                                                        }}
+                                                        className="flex-1 px-4 py-3 border-2 rounded-2xl text-xl font-medium"
+                                                        min="0"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* リセット確認モーダル */}
+                    {showResetModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-6 z-50">
+                            <div className="bg-white rounded-lg w-full max-w-lg p-6">
+                                <h3 className="text-3xl font-bold text-gray-800 mb-6">🗑️ データリセット</h3>
+                                <p className="text-gray-600 mb-10 text-xl leading-relaxed">
+                                    全てのレース記録を削除します。<br />
+                                    この操作は取り消せません。
+                                </p>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setShowResetModal(false)}
+                                        className="touch-button flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold text-lg"
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button
+                                        onClick={resetAllData}
+                                        className="touch-button flex-1 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-bold text-lg"
+                                    >
+                                        削除する
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<SportsScoreApp />, document.getElementById('root'));
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98ae45f593a5af25',t:'MTc1OTg0OTI4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
